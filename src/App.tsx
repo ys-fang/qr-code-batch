@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { QRCodeEntry } from './types';
 import { DataInputTable } from './components/DataInputTable';
+import { BulkUrlInput } from './components/BulkUrlInput';
 import { downloadAllAsZip } from './utils/batchDownload';
 
 function generateId(): string {
@@ -25,6 +26,7 @@ function App() {
   ]);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showBulkInput, setShowBulkInput] = useState(false);
 
   const handleUpdateEntry = useCallback(
     (id: string, field: keyof QRCodeEntry, value: string) => {
@@ -62,6 +64,24 @@ function App() {
       )
     );
   }, []);
+
+  const handleBulkImport = useCallback(
+    (importedEntries: { url: string; filename: string; label: string }[]) => {
+      const newEntries = importedEntries.map((data) => ({
+        id: generateId(),
+        url: data.url,
+        filename: data.filename,
+        label: data.label,
+        generated: false,
+      }));
+      setEntries((prev) => {
+        // Remove empty entries at the end, then add new ones
+        const nonEmptyPrev = prev.filter((e) => e.url || e.filename || e.label);
+        return [...nonEmptyPrev, ...newEntries];
+      });
+    },
+    []
+  );
 
   const handleDownloadAll = async () => {
     setDownloading(true);
@@ -159,6 +179,7 @@ function App() {
             onAddEntry={handleAddEntry}
             onRemoveEntry={handleRemoveEntry}
             onGenerated={handleGenerated}
+            onOpenBulkInput={() => setShowBulkInput(true)}
           />
         </div>
 
@@ -167,6 +188,13 @@ function App() {
           <p>QR Code 尺寸：800 x 800 像素 | 適合印刷使用</p>
         </div>
       </main>
+
+      {/* Bulk URL Input Modal */}
+      <BulkUrlInput
+        isOpen={showBulkInput}
+        onClose={() => setShowBulkInput(false)}
+        onImport={handleBulkImport}
+      />
     </div>
   );
 }
